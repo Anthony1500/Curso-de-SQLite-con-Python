@@ -1,0 +1,185 @@
+import sqlite3
+import tkinter as tk
+from tkinter import messagebox
+from datetime import datetime
+
+
+def conectar():
+    conexion  = sqlite3.connect('ventas.db')
+    cursor= conexion.cursor()
+    return conexion,cursor
+
+def cerrar_conexion(conexion):
+    conexion.close()
+    
+def crearTabla():
+    conexion,cursor =conectar()
+    cursor.execute('CREATE TABLE IF NOT EXISTS ventas (id INT PRIMARY KEY ,tienda TEXT NOT NULL,fecha TEXT NOT NULL, monto FLOAT TEXT)')
+    #print('Tabla creada')
+
+
+def insertarDatos(conexion, cursor, id_entry, tienda_entry, fecha_entry, monto_entry):
+    id = id_entry.get()
+    tienda = tienda_entry.get()
+    fecha = fecha_entry.get()
+    monto = monto_entry.get()
+
+    if not id or not tienda or not fecha or not monto:
+        messagebox.showerror("Error", "Todos los campos son obligatorios")
+        return
+
+    try:
+        monto = float(monto)
+    except ValueError:
+        messagebox.showerror("Error", "El monto debe ser un número")
+        return
+
+    try:
+        cursor.execute("INSERT INTO ventas (id, tienda, fecha, monto) VALUES (?, ?, ?, ?)", (id, tienda, fecha, monto))
+        conexion.commit()
+        messagebox.showinfo("Éxito", "Datos grabados correctamente")
+    except sqlite3.IntegrityError:
+        messagebox.showerror("Error", "El identificador ya existe en la base de datos")
+
+def consultar_por_fecha(cursor):
+    fecha = fecha_consulta_entry.get()
+    if fecha:
+        cursor.execute("SELECT * FROM ventas WHERE fecha=?", (fecha,))
+        resultados = cursor.fetchall()
+        consulta_text.delete(1.0, tk.END)
+        for fila in resultados:
+            consulta_text.insert(tk.END, f"ID: {fila[0]}, Tienda: {fila[1]}, Fecha: {fila[2]}, Monto: {fila[3]}\n")
+    else:
+        messagebox.showerror("Error", "La fecha es obligatoria para la consulta")
+
+def borrarDatos(conexion, cursor):
+    id = borrar_registro_entry.get()
+    if not id:
+        messagebox.showerror("Error", "El campo Identificador es obligatorio")
+        return
+
+    try:
+        cursor.execute("DELETE FROM ventas WHERE id=?", (id,))
+        conexion.commit()
+        if cursor.rowcount == 0:
+            messagebox.showwarning("Advertencia", "No se encontró un registro con ese identificador")
+        else:
+            messagebox.showinfo("Éxito", "El registro ha sido borrado")
+    except sqlite3.Error as e:
+        messagebox.showerror("Error", f"No se pudo borrar el registro: {e}")
+
+def limpiar_campos():
+    identificador_entry.delete(0, tk.END)
+    tienda_entry.delete(0, tk.END)
+    fecha_entry.delete(0, tk.END)
+    monto_entry.delete(0, tk.END)
+    identificador_entry2.delete(0, tk.END)
+    tienda_entry2.delete(0, tk.END)
+    fecha_entry2.delete(0, tk.END)
+    monto_entry2.delete(0, tk.END)
+    borrar_registro_entry.delete(0, tk.END)
+    fecha_consulta_entry.delete(0, tk.END)
+    consulta_text.delete(1.0, tk.END)
+
+if __name__ == '__main__':
+    con, cursor = conectar()
+    crearTabla()
+
+    ventana = tk.Tk()
+    ventana.title("Registro de Ventas Diarias")
+    
+    ventana.columnconfigure(0, weight=1)
+    ventana.columnconfigure(1, weight=1)
+    ventana.columnconfigure(2, weight=1)
+
+    # Primer cuadro azul claro
+    frame_datos1 = tk.Frame(ventana, bg="lightblue", padx=10, pady=10, bd=2, relief=tk.GROOVE)
+    frame_datos1.grid(row=0, column=0, padx=10, pady=10, sticky='n')
+
+    # Título para Tienda 1
+    tk.Label(frame_datos1, text="Tienda 1", bg="lightblue", font=('Helvetica', 12, 'bold')).grid(row=0, column=0, columnspan=2, pady=10)
+
+    tk.Label(frame_datos1, text="Identificador:", bg="lightblue").grid(row=1, column=0, padx=10, pady=10)
+    identificador_entry = tk.Entry(frame_datos1)
+    identificador_entry.grid(row=1, column=1, padx=10, pady=10)
+
+    tk.Label(frame_datos1, text="Tienda:", bg="lightblue").grid(row=2, column=0, padx=10, pady=10)
+    tienda_entry = tk.Entry(frame_datos1)
+    tienda_entry.grid(row=2, column=1, padx=10, pady=10)
+
+    tk.Label(frame_datos1, text="Fecha (YYYY-MM-DD):", bg="lightblue").grid(row=3, column=0, padx=10, pady=10)
+    fecha_entry = tk.Entry(frame_datos1)
+    fecha_entry.grid(row=3, column=1, padx=10, pady=10)
+
+    tk.Label(frame_datos1, text="Monto:", bg="lightblue").grid(row=4, column=0, padx=10, pady=10)
+    monto_entry = tk.Entry(frame_datos1)
+    monto_entry.grid(row=4, column=1, padx=10, pady=10)
+
+    tk.Button(frame_datos1, text="Grabar", command=lambda: insertarDatos(con, cursor, identificador_entry, tienda_entry, fecha_entry, monto_entry)).grid(row=5, column=1, padx=10, pady=10)
+
+    # Segundo cuadro azul claro
+    frame_datos2 = tk.Frame(ventana, bg="lightblue", padx=10, pady=10, bd=2, relief=tk.GROOVE)
+    frame_datos2.grid(row=0, column=1, padx=10, pady=10, sticky='n')
+
+    # Título para Tienda 2
+    tk.Label(frame_datos2, text="Tienda 2", bg="lightblue", font=('Helvetica', 12, 'bold')).grid(row=0, column=0, columnspan=2, pady=10)
+
+    tk.Label(frame_datos2, text="Identificador:", bg="lightblue").grid(row=1, column=0, padx=10, pady=10)
+    identificador_entry2 = tk.Entry(frame_datos2)
+    identificador_entry2.grid(row=1, column=1, padx=10, pady=10)
+
+    tk.Label(frame_datos2, text="Tienda:", bg="lightblue").grid(row=2, column=0, padx=10, pady=10)
+    tienda_entry2 = tk.Entry(frame_datos2)
+    tienda_entry2.grid(row=2, column=1, padx=10, pady=10)
+
+    tk.Label(frame_datos2, text="Fecha (YYYY-MM-DD):", bg="lightblue").grid(row=3, column=0, padx=10, pady=10)
+    fecha_entry2 = tk.Entry(frame_datos2)
+    fecha_entry2.grid(row=3, column=1, padx=10, pady=10)
+
+    tk.Label(frame_datos2, text="Monto:", bg="lightblue").grid(row=4, column=0, padx=10, pady=10)
+    monto_entry2 = tk.Entry(frame_datos2)
+    monto_entry2.grid(row=4, column=1, padx=10, pady=10)
+
+    tk.Button(frame_datos2, text="Grabar", command=lambda: insertarDatos(con, cursor, identificador_entry2, tienda_entry2, fecha_entry2, monto_entry2)).grid(row=5, column=1, padx=10, pady=10)
+
+    # Sección de borrar
+    frame_borrar = tk.Frame(ventana, bg="lightgreen", padx=10, pady=10, bd=2, relief=tk.GROOVE)
+    frame_borrar.grid(row=1, column=0, columnspan=3, padx=10, pady=10, sticky='ew')
+    frame_limpiar = tk.Frame(ventana, bg="lightgreen", padx=10, pady=10,  relief=tk.GROOVE)
+    frame_limpiar.grid(row=1, column=1, columnspan=3, padx=10, pady=10, sticky='ew')
+
+    tk.Label(frame_borrar, text="Borrar registro:", bg="lightgreen").grid(row=0, column=0, padx=10, pady=10)
+    borrar_registro_entry = tk.Entry(frame_borrar)
+    borrar_registro_entry.grid(row=0, column=1, padx=10, pady=10)
+
+
+    tk.Button(frame_borrar, text="Borrar", command=lambda: borrarDatos(con, cursor)).grid(row=1, column=1, padx=10, pady=10, sticky='ew')
+
+    tk.Label(frame_limpiar, text="Limpiar los campos:", bg="lightgreen").grid(row=2, column=0, padx=10, pady=10, sticky='e')
+    tk.Button(frame_limpiar, text=" Limpiar ", command=limpiar_campos).grid(row=2, column=1, padx=10, pady=10, sticky='ew')
+
+    # Sección de consulta
+    frame_consulta = tk.Frame(ventana, bg="lightcoral", padx=10, pady=10, bd=2, relief=tk.GROOVE)
+    frame_consulta.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky='ew')
+
+    frame_consulta.columnconfigure(0, weight=1)
+    frame_consulta.columnconfigure(1, weight=1)
+    frame_consulta.columnconfigure(2, weight=1)
+
+    tk.Label(frame_consulta, text="Consulta por Fecha:", bg="lightcoral").grid(row=0, column=0, padx=10, pady=10, sticky='ew')
+    fecha_consulta_entry = tk.Entry(frame_consulta)
+    fecha_consulta_entry.grid(row=0, column=1, padx=10, pady=10, sticky='ew')
+
+    tk.Button(frame_consulta, text="Consultar", command=lambda: consultar_por_fecha(cursor)).grid(row=1, column=1, padx=10, pady=10, sticky='ew')
+
+    # Text widget para mostrar los resultados de la consulta
+    consulta_text = tk.Text(frame_consulta, height=10, width=50)
+    consulta_text.grid(row=2, column=0, columnspan=3, padx=10, pady=10, sticky='ew')
+
+
+
+    # Ejecutar
+    ventana.mainloop()   
+     
+    cerrar_conexion(con)
+    
